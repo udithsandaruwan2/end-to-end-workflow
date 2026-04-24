@@ -1,71 +1,187 @@
-# 🚀 Django API with Traefik Reverse Proxy (Dockerized)
+# 🚀 End-to-End Django CI/CD Deployment (Docker + AWS + Traefik)
 
-A production-ready backend setup using **Django**, **PostgreSQL**, **Docker**, and **Traefik** as a reverse proxy with service discovery.
+A production-ready backend system built with **Django**, containerized using **Docker**, deployed on **AWS EC2**, and fully automated using **GitHub Actions CI/CD** with **Traefik reverse proxy**.
 
 ---
 
-## 📌 Overview
+# 📌 Overview
 
-This project demonstrates a modern backend architecture:
+This project demonstrates a complete modern DevOps workflow:
 
-* Django REST API (served via Gunicorn)
+* Django REST backend
 * PostgreSQL database
+* Dockerized microservice architecture
 * Traefik reverse proxy for routing
-* Dockerized services using Docker Compose
+* AWS EC2 deployment
+* CI/CD pipeline with GitHub Actions
+* Automatic deployment on push to `main`
 
 ---
 
-## 🏗️ Architecture
+# 🧠 System Architecture
+
+## 🔷 High-Level Flow
 
 ```
-Browser (localhost:8081)
-        ↓
-     Traefik (Port 80 inside container)
-        ↓
-     Django (Gunicorn - Port 8000)
-        ↓
-     PostgreSQL (Port 5432)
+User Browser
+     ↓
+Public IP / Domain (AWS EC2)
+     ↓
+Traefik Reverse Proxy
+     ↓
+Django Application (Gunicorn)
+     ↓
+PostgreSQL Database
 ```
 
 ---
 
-## ⚙️ Tech Stack
+## 🔷 CI/CD Flow
 
-* Python (Django)
-* Gunicorn
-* PostgreSQL
-* Docker & Docker Compose
-* Traefik (Reverse Proxy & Load Balancer)
+```
+Developer Push → GitHub Repo
+        ↓
+GitHub Actions (CI/CD Pipeline)
+        ↓
+Run Tests + Validate Django
+        ↓
+SSH into AWS EC2
+        ↓
+Git Pull Latest Code
+        ↓
+Docker Compose Rebuild
+        ↓
+Application Updated
+```
 
 ---
 
-## 📁 Project Structure
+# 🏗️ Tech Stack
+
+* 🐍 Django (Backend API)
+* 🐳 Docker & Docker Compose
+* ⚡ Traefik (Reverse Proxy)
+* 🐘 PostgreSQL (Database)
+* ☁️ AWS EC2 (Deployment Server)
+* 🔁 GitHub Actions (CI/CD)
+* 🔧 uv (Python dependency manager)
+
+---
+
+# 📁 Project Structure
 
 ```
-.
-├── docker-compose.yml
+end-to-end-workflow/
+│
+├── backend/
+├── api/
+├── users/
+├── templates/
+├── staticfiles/
+│
 ├── Dockerfile
+├── docker-compose.yml
 ├── manage.py
-├── config/
-├── app/
-├── requirements / pyproject.toml (uv)
-└── ...
+├── pyproject.toml
+├── uv.lock
+└── README.md
 ```
 
 ---
 
-## 🚀 Getting Started
+# 🚀 Deployment Architecture
 
-### 1️⃣ Clone the repository
+## 🖥️ AWS EC2 Setup
 
-```bash
-git clone <your-repo-url>
-cd <project-folder>
+* Ubuntu server (t3.micro)
+* Public IP exposed
+* Docker installed
+* Git installed
+* Security group configured
+
+### Open Ports:
+
+* 80 → Traefik HTTP
+* 8080 → Traefik Dashboard
+* 5432 → PostgreSQL (internal only)
+
+---
+
+## 🐳 Docker Services
+
+### 1️⃣ Django App
+
+* Runs via Gunicorn
+* Exposed internally on port `8000`
+* Handles all API requests
+
+---
+
+### 2️⃣ PostgreSQL Database
+
+* Official PostgreSQL image
+* Persistent volume storage
+* Internal Docker network only
+
+---
+
+### 3️⃣ Traefik Reverse Proxy
+
+* Routes external traffic
+* Auto-discovers services via Docker
+* Dashboard enabled on port `8080`
+
+---
+
+# 🌐 Access URLs
+
+After deployment:
+
+### 🔥 Main Application
+
+```
+http://<EC2_PUBLIC_IP>/
+```
+
+### 📊 Traefik Dashboard
+
+```
+http://<EC2_PUBLIC_IP>:8080/dashboard/
 ```
 
 ---
 
-### 2️⃣ Build and run the containers
+# 🔐 CI/CD Pipeline (GitHub Actions)
+
+## Trigger
+
+* Runs on every push to `main`
+
+## Pipeline Steps
+
+1. Checkout code
+2. Setup Python 3.12
+3. Install uv
+4. Install dependencies
+5. Run Django migration checks
+6. Run tests
+7. SSH into AWS EC2
+8. Pull latest code
+9. Rebuild Docker containers
+
+---
+
+## GitHub Secrets Required
+
+```
+EC2_HOST   → Public IP of server
+EC2_USER   → ubuntu (or ec2-user)
+EC2_KEY    → SSH private key
+```
+
+---
+
+# 🔄 Deployment Command (Manual)
 
 ```bash
 docker compose up -d --build
@@ -73,21 +189,38 @@ docker compose up -d --build
 
 ---
 
-### 3️⃣ Access the application
+# 🧪 Health Check (Recommended)
 
-* 🌐 Django API:
-  http://localhost:8081/
+Add endpoint:
 
-* ⚙️ Traefik Dashboard:
-  http://localhost:8080/dashboard/
+```
+/health/
+```
+
+Used for monitoring application status inside Traefik.
 
 ---
 
-## 🔐 Environment Variables
+# 📊 Monitoring
 
-Configured inside `docker-compose.yml`:
+## Traefik Dashboard
 
-```yaml
+* Shows routing status
+* Active services
+* Request flow
+
+## Logs
+
+```bash
+docker logs -f us-traefik-1
+docker logs -f us-django-1
+```
+
+---
+
+# ⚙️ Environment Variables
+
+```env
 POSTGRES_DB=db
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=postgres
@@ -97,124 +230,46 @@ POSTGRES_PORT=5432
 
 ---
 
-## 🧪 Running Migrations
+# 🔐 Security Notes
 
-```bash
-docker exec -it <django-container> python manage.py migrate
-```
-
----
-
-## 👤 Create Superuser
-
-```bash
-docker exec -it <django-container> python manage.py createsuperuser
-```
-
-Access admin panel:
-
-```
-http://localhost:8081/admin/
-```
+* PostgreSQL is NOT exposed publicly
+* Only Traefik is exposed externally
+* SSH key-based authentication used for deployment
+* Docker isolates services in internal network
 
 ---
 
-## 🔄 Traefik Routing
+# 📈 What This Project Demonstrates
 
-Routing is handled using Docker labels:
-
-```yaml
-- "traefik.enable=true"
-- "traefik.http.routers.django.rule=PathPrefix(`/`)"
-- "traefik.http.routers.django.entrypoints=web"
-- "traefik.http.services.django.loadbalancer.server.port=8000"
-```
+✔ Production-grade backend architecture
+✔ Reverse proxy routing (Traefik)
+✔ Container orchestration (Docker Compose)
+✔ Cloud deployment (AWS EC2)
+✔ CI/CD automation (GitHub Actions)
+✔ Real-world DevOps workflow
 
 ---
 
-## 📊 Monitoring
+# 🚀 Future Improvements
 
-### Traefik Dashboard
-
-* View routers, services, and status
-* URL: http://localhost:8080/dashboard/
-
-### Enable Access Logs (optional)
-
-```yaml
---accesslog=true
---log.level=INFO
-```
+* HTTPS with Let’s Encrypt (Traefik SSL)
+* Domain name setup
+* Blue-green deployment
+* Auto rollback on failure
+* Prometheus + Grafana monitoring
+* Scaling with multiple Django instances
 
 ---
 
-## ❤️ Health Check (Recommended)
+# 👨‍💻 Author
 
-Add a health endpoint in Django:
-
-```python
-def health_check(request):
-    return JsonResponse({"status": "ok"})
-```
-
-Then configure Traefik:
-
-```yaml
-- "traefik.http.services.django.loadbalancer.healthcheck.path=/health/"
-```
-
----
-
-## 🐳 Docker Commands
-
-### Stop containers
-
-```bash
-docker compose down
-```
-
-### Rebuild
-
-```bash
-docker compose up -d --build
-```
-
-### View logs
-
-```bash
-docker logs -f us-django-1
-docker logs -f us-traefik-1
-```
-
----
-
-## 🔥 Future Improvements
-
-* HTTPS with Let’s Encrypt
-* Domain-based routing
-* CI/CD pipeline (GitHub Actions)
-* Load balancing multiple Django instances
-* Monitoring with Prometheus & Grafana
-
----
-
-## ⚠️ Notes
-
-* Traefik handles all incoming traffic (no direct Django exposure)
-* PostgreSQL is isolated within Docker network
-* Port 8081 is used only for development
-
----
-
-## 👨‍💻 Author
-
-Udith Sandaruwan
+**Udith Sanadruwan**
 
 * GitHub: udithsandaruwan2
 * Portfolio: udithsandaruwan.me
 
 ---
 
-## 📜 License
+# 📜 License
 
-This project is for educational and development purposes.
+This project is for learning and educational DevOps practice.
